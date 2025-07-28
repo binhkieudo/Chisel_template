@@ -1,2 +1,0 @@
-myCounter.sv
-Blink.sv
