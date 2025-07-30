@@ -7,6 +7,7 @@ import chisel3.probe
 import chisel3.experimental.hierarchy._ // for @public @instantiable
 import chisel3.experimental.hierarchy.core.{Definition, Instance}
 import circt.stage.ChiselStage
+import collection.mutable.ListBuffer
 
 //===== Synthesizable (bore, drive) ==================
 class BlinknCount(limit: Int = 8) extends Module {
@@ -20,18 +21,25 @@ class BlinknCount(limit: Int = 8) extends Module {
       val count = Output(UInt(counterWidth.W))
   })
   
-
-  val counter = Module(new myCounter(limit))
+  // 1. Create a list to hold module instances.
+  val moduleList = collection.mutable.ListBuffer[Module]()
+  
+  // 2. Pass the list to the child's constructor.
+  // myCounter and its children (myAdder) will add themselves to this list.
+  val counter = Module(new myCounter(limit, moduleList))
     
   // Hierarchy direct connect
   io.out := counter.out
   
   // Child connect
   io.count := BoringUtils.bore(counter.counter)
-  BoringUtils.drive(counter.en) := io.en
   
-  // Non-child connect
-  BoringUtils.drive(counter.add0.isAdd) := io.isAdd
+  BoringUtils.drive(counter.en) := io.en 
+  
+  // Traverse the list to find all instances of `myAdder` and drive their `isAdd` signal.
+  moduleList.collect {
+    case adder: myAdder => BoringUtils.drive(adder.isAdd) := io.isAdd
+  }
   
   // deprecated example ==================
   // BoringUtils.addSink(io.count, "uniqueID")
@@ -52,12 +60,20 @@ class BlinknCountTap(limit: Int = 8) extends Module {
       val prob = probe.Probe(UInt(counterWidth.W))
   })
     
-  val counter = Module(new myCounter(limit))
+  // 1. Create a list to hold module instances.
+  val moduleList = collection.mutable.ListBuffer[Module]()
+  
+  // 2. Pass the list to the child's constructor.
+  val counter = Module(new myCounter(limit, moduleList))
     
   BoringUtils.drive(counter.en) := io.en
         
-  // Non-child connect
-  BoringUtils.drive(counter.add0.isAdd) := io.isAdd
+  // 3. Now you can control modules by iterating through the populated list.
+  // This is more robust than relying on a fixed hierarchy.
+  // Here, we find all instances of `myAdder` in the list and drive their `isAdd` signal.
+  moduleList.collect {
+    case adder: myAdder => BoringUtils.drive(adder.isAdd) := io.isAdd
+  }
   
   // Define probe
   probe.define(io.prob, BoringUtils.tap(counter.counter))
@@ -82,12 +98,17 @@ class BlinknCountRWTap(limit: Int = 8) extends Module {
       val prob = probe.RWProbe(UInt(counterWidth.W))
   })
     
-  val counter = Module(new myCounter(limit))
+  // Create and pass the list here as well
+  val moduleList = collection.mutable.ListBuffer[Module]()
+  
+  val counter = Module(new myCounter(limit, moduleList))
     
   BoringUtils.drive(counter.en) := io.en
         
-  // Un-hierarchy connect
-  BoringUtils.drive(counter.add0.isAdd) := io.isAdd
+  // Traverse the list to find all instances of `myAdder` and drive their `isAdd` signal.
+  moduleList.collect {
+    case adder: myAdder => BoringUtils.drive(adder.isAdd) := io.isAdd
+  }
   
   // Define R/W probe
   probe.define(io.prob, BoringUtils.rwTap(counter.counter))
