@@ -13,16 +13,21 @@ PROJECT_DIR := ./project
 TARGET_DIR := ./target
 BUILD_DIR := ./build
 
-.PHONY: all verilog test doc html pdf clean clean_all
+.PHONY: all bore probe rwprobe test doc html pdf clean clean_all
 
 # Default target
 all: verilog test doc
 
 # Generate Verilog for SmuDma
-verilog:
-	@echo "Generating Verilog..."
-	@$(SBT) generateVerilog
+bore:
+	@$(SBT) generateSimple
 
+probe:
+	@$(SBT) generateProbe
+	
+rwprobe:
+	@$(SBT) generateRWProbe
+	
 # Run SmuDma tests
 test:
 	@echo "Running tests..."

@@ -54,5 +54,11 @@ lazy val root = (project in file("."))
   )
   
 // Custom task to generate Verilog for SmuDma
-lazy val generateVerilog = taskKey[Unit]("Generates Verilog...")
-ThisBuild / generateVerilog := (runMain in Compile).toTask(" blink.Blink").value
+lazy val generateSimple = taskKey[Unit]("Generates example for bore...")
+ThisBuild / generateSimple := (runMain in Compile).toTask(" blink.BlinknCount").value
+
+lazy val generateProbe = taskKey[Unit]("Generates example for probe...")
+ThisBuild / generateProbe := (runMain in Compile).toTask(" blink.BlinknCountTap").value
+
+lazy val generateRWProbe = taskKey[Unit]("Generates example for read/write probe...")
+ThisBuild / generateRWProbe := (runMain in Compile).toTask(" blink.BlinknCountRWTap").value
